@@ -8,8 +8,9 @@ Speech-to-text and text-to-speech for Home Assistant powered by
 
 ## Highlights
 
-- Real-time STT (`stt-rt-v4`) — WebSocket streaming with final tokens.
-- TTS (`tts-rt-v1`) with 28 voices, every voice speaks every language.
+- Real-time STT (`stt-rt-v5`) — WebSocket streaming with final tokens.
+- Async STT (`stt-async-v5`) — file upload + poll for higher-accuracy transcripts.
+- TTS (`tts-rt-v2`) with 28 voices, every voice speaks every language.
 - Per-call voice and audio-format overrides.
 - No external Python dependencies — built on Home Assistant's bundled `aiohttp`.
 

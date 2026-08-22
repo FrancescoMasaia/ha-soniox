@@ -30,7 +30,8 @@
         "title": "Soniox defaults",
         "description": "Defaults applied when a service call does not specify a value.",
         "data": {
-          "stt_model": "STT model",
+          "stt_model": "Realtime STT model",
+          "stt_async_model": "Async STT model",
           "tts_model": "TTS model",
           "tts_voice": "Default TTS voice",
           "tts_language": "Default TTS language",

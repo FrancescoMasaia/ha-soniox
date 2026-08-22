@@ -13,9 +13,11 @@ into the Assist voice pipeline.
 > endorsed by, or maintained by Soniox. The Soniox name and logo are used
 > with permission for the purpose of this community integration.
 
-- **STT** — real-time transcription via Soniox `stt-rt-v4` over WebSocket.
-  Supports 60+ languages and sends low-latency final tokens as the user speaks.
-- **TTS** — `tts-rt-v1` voices, both as a one-shot REST call and as a
+- **STT (realtime)** — `stt-rt-v5` over WebSocket. Supports 60+ languages
+  and sends low-latency final tokens as the user speaks.
+- **STT (async)** — `stt-async-v5` via the Files + Transcriptions REST API.
+  Buffers the utterance, uploads it, and polls for a higher-accuracy transcript.
+- **TTS** — `tts-rt-v2` voices, both as a one-shot REST call and as a
   streaming WebSocket session (so LLM-generated text can start speaking before
   it's fully written).
 
@@ -41,8 +43,9 @@ Open the integration's **Configure** screen to set defaults:
 
 | Option              | Default      | Notes                                                                |
 | ------------------- | ------------ | -------------------------------------------------------------------- |
-| STT model           | `stt-rt-v4`  | Soniox real-time STT model.                                          |
-| TTS model           | `tts-rt-v1`  | Soniox real-time TTS model.                                          |
+| Realtime STT model  | `stt-rt-v5`  | WebSocket streaming. Used by the `Speech-to-Text` entity.            |
+| Async STT model     | `stt-async-v5` | File upload + poll. Used by the `Speech-to-Text (Async)` entity.   |
+| TTS model           | `tts-rt-v2`  | Soniox real-time TTS model.                                          |
 | Default TTS voice   | `Maya`       | Any voice from the Soniox catalog (see below).                       |
 | Default TTS language| `en`         | Two-letter ISO code.                                                 |
 | TTS audio format    | `mp3`        | `mp3`, `wav`, or `pcm_s16le`.                                        |
@@ -56,7 +59,9 @@ Per-service-call overrides:
 ## Use it in the Assist pipeline
 
 **Settings → Voice assistants → Assistant → Add assistant**, then pick the
-`Soniox` STT entity and the `Soniox` TTS entity.
+`Soniox Speech-to-Text` (or `Speech-to-Text (Async)`) entity and the
+`Soniox` TTS entity. Use realtime STT for Assist; async STT is slower but
+typically more accurate on a complete recording.
 
 > **Note**: To use the browser mic icon on your laptop, Home Assistant must be
 > served over HTTPS (browsers block microphone access on plain HTTP from

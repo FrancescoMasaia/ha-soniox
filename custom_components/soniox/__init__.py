@@ -8,11 +8,30 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import (
+    CONF_STT_ASYNC_MODEL,
+    CONF_STT_MODEL,
+    CONF_TTS_MODEL,
+    CONF_TTS_SAMPLE_RATE,
+    DEFAULT_STT_ASYNC_MODEL,
+    DEFAULT_STT_MODEL,
+    DEFAULT_TTS_MODEL,
+    DEFAULT_TTS_SAMPLE_RATE,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.STT, Platform.TTS]
+
+_LEGACY_MODELS = {
+    "stt-rt-v3": DEFAULT_STT_MODEL,
+    "stt-rt-v4": DEFAULT_STT_MODEL,
+    "stt-async-v3": DEFAULT_STT_ASYNC_MODEL,
+    "stt-async-v4": DEFAULT_STT_ASYNC_MODEL,
+    "tts-rt-v1": DEFAULT_TTS_MODEL,
+    "tts-rt-v1-preview": DEFAULT_TTS_MODEL,
+}
 
 type SonioxConfigEntry = ConfigEntry[None]
 
@@ -21,6 +40,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: SonioxConfigEntry) -> bo
     """Set up Soniox from a config entry."""
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: SonioxConfigEntry) -> bool:
+    """Migrate old config entries to the current version."""
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        options = dict(entry.options)
+        if (old := options.get(CONF_STT_MODEL)) in _LEGACY_MODELS:
+            mapped = _LEGACY_MODELS[old]
+            if "async" in old:
+                options[CONF_STT_ASYNC_MODEL] = mapped
+                options[CONF_STT_MODEL] = DEFAULT_STT_MODEL
+            else:
+                options[CONF_STT_MODEL] = mapped
+        if (old := options.get(CONF_TTS_MODEL)) in _LEGACY_MODELS:
+            options[CONF_TTS_MODEL] = _LEGACY_MODELS[old]
+        if CONF_TTS_SAMPLE_RATE in options:
+            try:
+                options[CONF_TTS_SAMPLE_RATE] = int(options[CONF_TTS_SAMPLE_RATE])
+            except (TypeError, ValueError):
+                options[CONF_TTS_SAMPLE_RATE] = DEFAULT_TTS_SAMPLE_RATE
+        hass.config_entries.async_update_entry(entry, options=options, version=2)
+        _LOGGER.debug("Migrated Soniox config entry %s to version 2", entry.entry_id)
     return True
 
 

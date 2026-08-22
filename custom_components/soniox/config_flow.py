@@ -25,12 +25,14 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_API_KEY,
+    CONF_STT_ASYNC_MODEL,
     CONF_STT_MODEL,
     CONF_TTS_AUDIO_FORMAT,
     CONF_TTS_LANGUAGE,
     CONF_TTS_MODEL,
     CONF_TTS_SAMPLE_RATE,
     CONF_TTS_VOICE,
+    DEFAULT_STT_ASYNC_MODEL,
     DEFAULT_STT_MODEL,
     DEFAULT_TTS_AUDIO_FORMAT,
     DEFAULT_TTS_LANGUAGE,
@@ -38,7 +40,10 @@ from .const import (
     DEFAULT_TTS_SAMPLE_RATE,
     DEFAULT_TTS_VOICE,
     DOMAIN,
+    STT_ASYNC_MODELS,
+    STT_REALTIME_MODELS,
     SUPPORTED_LANGUAGES,
+    TTS_MODELS,
     TTS_MODELS_URL,
     TTS_VOICES,
 )
@@ -47,6 +52,16 @@ _LOGGER = logging.getLogger(__name__)
 
 TTS_AUDIO_FORMATS = ["mp3", "wav", "pcm_s16le"]
 TTS_SAMPLE_RATES = [8000, 16000, 24000, 44100, 48000]
+
+
+def _model_options(
+    choices: list[str], current: str | None
+) -> list[SelectOptionDict]:
+    """Keep a user-saved custom model visible in the dropdown."""
+    values = list(choices)
+    if current and current not in values:
+        values.append(current)
+    return [SelectOptionDict(value=value, label=value) for value in values]
 
 
 async def _validate_api_key(
@@ -73,7 +88,7 @@ async def _validate_api_key(
 class SonioxConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Soniox."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -136,6 +151,12 @@ class SonioxOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Show / save the options form."""
         if user_input is not None:
+            try:
+                user_input[CONF_TTS_SAMPLE_RATE] = int(
+                    user_input[CONF_TTS_SAMPLE_RATE]
+                )
+            except (KeyError, TypeError, ValueError):
+                user_input[CONF_TTS_SAMPLE_RATE] = DEFAULT_TTS_SAMPLE_RATE
             return self.async_create_entry(title="", data=user_input)
 
         opts = self.config_entry.options
@@ -151,17 +172,41 @@ class SonioxOptionsFlow(OptionsFlow):
         sample_rate_options = [
             SelectOptionDict(value=str(r), label=str(r)) for r in TTS_SAMPLE_RATES
         ]
+        stt_model_options = _model_options(
+            STT_REALTIME_MODELS, opts.get(CONF_STT_MODEL)
+        )
+        stt_async_model_options = _model_options(
+            STT_ASYNC_MODELS, opts.get(CONF_STT_ASYNC_MODEL)
+        )
+        tts_model_options = _model_options(TTS_MODELS, opts.get(CONF_TTS_MODEL))
 
         schema = vol.Schema(
             {
                 vol.Optional(
                     CONF_STT_MODEL,
                     default=opts.get(CONF_STT_MODEL, DEFAULT_STT_MODEL),
-                ): str,
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=stt_model_options, mode=SelectSelectorMode.DROPDOWN
+                    )
+                ),
+                vol.Optional(
+                    CONF_STT_ASYNC_MODEL,
+                    default=opts.get(CONF_STT_ASYNC_MODEL, DEFAULT_STT_ASYNC_MODEL),
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=stt_async_model_options,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Optional(
                     CONF_TTS_MODEL,
                     default=opts.get(CONF_TTS_MODEL, DEFAULT_TTS_MODEL),
-                ): str,
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=tts_model_options, mode=SelectSelectorMode.DROPDOWN
+                    )
+                ),
                 vol.Optional(
                     CONF_TTS_VOICE,
                     default=opts.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE),

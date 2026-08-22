@@ -139,12 +139,12 @@ class SonioxTTSEntity(TextToSpeechEntity):
     async def async_stream_tts_audio(
         self, request: TTSAudioRequest
     ) -> TTSAudioResponse:
-        _LOGGER.debug("Soniox TTS path: WebSocket (async_stream_tts_audio)")
         """Streaming synthesis via the Soniox TTS WebSocket.
 
         Lets HA pipe text chunks (e.g. from an LLM) and get audio back with
         sub-sentence latency.
         """
+        _LOGGER.debug("Soniox TTS path: WebSocket (async_stream_tts_audio)")
         audio_format = request.options.get(
             ATTR_AUDIO_OUTPUT,
             self._entry.options.get(CONF_TTS_AUDIO_FORMAT, DEFAULT_TTS_AUDIO_FORMAT),
@@ -198,20 +198,19 @@ class SonioxTTSEntity(TextToSpeechEntity):
             async with session.ws_connect(
                 TTS_WEBSOCKET_URL,
                 heartbeat=30,
-                timeout=aiohttp.ClientTimeout(total=30),
                 max_msg_size=0,
             ) as ws:
-                await ws.send_json(
-                    {
-                        "api_key": api_key,
-                        "model": model,
-                        "language": language,
-                        "voice": voice,
-                        "audio_format": audio_format,
-                        "sample_rate": sample_rate,
-                        "stream_id": stream_id,
-                    }
-                )
+                config: dict[str, Any] = {
+                    "api_key": api_key,
+                    "model": model,
+                    "language": language,
+                    "voice": voice,
+                    "audio_format": audio_format,
+                    "stream_id": stream_id,
+                }
+                if audio_format.startswith("pcm") or audio_format == "wav":
+                    config["sample_rate"] = sample_rate
+                await ws.send_json(config)
 
                 async def pump_text() -> None:
                     async for chunk in request.message_gen:
