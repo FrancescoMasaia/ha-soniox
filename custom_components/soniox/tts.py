@@ -30,21 +30,22 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import SonioxConfigEntry
 from .const import (
     CONF_API_KEY,
+    CONF_REGION,
     CONF_TTS_AUDIO_FORMAT,
     CONF_TTS_LANGUAGE,
     CONF_TTS_MODEL,
     CONF_TTS_SAMPLE_RATE,
     CONF_TTS_VOICE,
+    DEFAULT_REGION,
     DEFAULT_TTS_AUDIO_FORMAT,
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_MODEL,
     DEFAULT_TTS_SAMPLE_RATE,
     DEFAULT_TTS_VOICE,
     DOMAIN,
+    REGION_LABELS,
     SUPPORTED_LANGUAGES,
-    TTS_REST_URL,
     TTS_VOICES,
-    TTS_WEBSOCKET_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,9 +76,10 @@ class SonioxTTSEntity(TextToSpeechEntity):
     def __init__(self, entry: SonioxConfigEntry) -> None:
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}-tts"
+        region = entry.data.get(CONF_REGION, DEFAULT_REGION)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Soniox",
+            name=f"Soniox ({REGION_LABELS.get(region, REGION_LABELS[DEFAULT_REGION])})",
             manufacturer="Soniox",
             model="Speech AI",
             entry_type=DeviceEntryType.SERVICE,
@@ -120,7 +122,7 @@ class SonioxTTSEntity(TextToSpeechEntity):
 
         try:
             async with session.post(
-                TTS_REST_URL,
+                self._entry.runtime_data.tts_rest_url,
                 json=body,
                 headers={"Authorization": f"Bearer {api_key}"},
                 timeout=aiohttp.ClientTimeout(total=60),
@@ -196,7 +198,7 @@ class SonioxTTSEntity(TextToSpeechEntity):
 
         try:
             async with session.ws_connect(
-                TTS_WEBSOCKET_URL,
+                self._entry.runtime_data.tts_websocket_url,
                 heartbeat=30,
                 max_msg_size=0,
             ) as ws:

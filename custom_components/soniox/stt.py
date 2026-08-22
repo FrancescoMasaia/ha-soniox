@@ -32,14 +32,14 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import SonioxConfigEntry
 from .const import (
     CONF_API_KEY,
+    CONF_REGION,
     CONF_STT_ASYNC_MODEL,
     CONF_STT_MODEL,
+    DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
     DEFAULT_STT_MODEL,
     DOMAIN,
-    STT_FILES_URL,
-    STT_TRANSCRIPTIONS_URL,
-    STT_WEBSOCKET_URL,
+    REGION_LABELS,
     SUPPORTED_LANGUAGES,
     is_async_stt_model,
 )
@@ -84,9 +84,10 @@ class SonioxSTTEntity(SpeechToTextEntity):
         else:
             self._attr_name = "Speech-to-Text"
             self._attr_unique_id = f"{entry.entry_id}-stt"
+        region = entry.data.get(CONF_REGION, DEFAULT_REGION)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Soniox",
+            name=f"Soniox ({REGION_LABELS.get(region, REGION_LABELS[DEFAULT_REGION])})",
             manufacturer="Soniox",
             model="Speech AI",
             entry_type=DeviceEntryType.SERVICE,
@@ -161,7 +162,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
         session = async_get_clientsession(self.hass)
         try:
             async with session.ws_connect(
-                STT_WEBSOCKET_URL,
+                self._entry.runtime_data.stt_websocket_url,
                 heartbeat=30,
                 max_msg_size=0,
             ) as ws:
@@ -297,7 +298,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
             content_type="audio/wav",
         )
         async with session.post(
-            STT_FILES_URL,
+            self._entry.runtime_data.stt_files_url,
             data=form,
             headers=headers,
             timeout=aiohttp.ClientTimeout(total=60),
@@ -327,7 +328,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
             "client_reference_id": "home-assistant",
         }
         async with session.post(
-            STT_TRANSCRIPTIONS_URL,
+            self._entry.runtime_data.stt_transcriptions_url,
             json=body,
             headers=headers,
             timeout=aiohttp.ClientTimeout(total=30),
@@ -353,7 +354,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
         transcription_id: str,
     ) -> bool:
         deadline = time.monotonic() + _ASYNC_TIMEOUT
-        url = f"{STT_TRANSCRIPTIONS_URL}/{transcription_id}"
+        url = f"{self._entry.runtime_data.stt_transcriptions_url}/{transcription_id}"
         while True:
             async with session.get(
                 url,
@@ -391,7 +392,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
         headers: dict[str, str],
         transcription_id: str,
     ) -> str | None:
-        url = f"{STT_TRANSCRIPTIONS_URL}/{transcription_id}/transcript"
+        url = f"{self._entry.runtime_data.stt_transcriptions_url}/{transcription_id}/transcript"
         async with session.get(
             url,
             headers=headers,
@@ -424,7 +425,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
         if transcription_id:
             try:
                 async with session.delete(
-                    f"{STT_TRANSCRIPTIONS_URL}/{transcription_id}",
+                    f"{self._entry.runtime_data.stt_transcriptions_url}/{transcription_id}",
                     headers=headers,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
@@ -439,7 +440,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
         if file_id:
             try:
                 async with session.delete(
-                    f"{STT_FILES_URL}/{file_id}",
+                    f"{self._entry.runtime_data.stt_files_url}/{file_id}",
                     headers=headers,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:

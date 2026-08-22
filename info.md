@@ -18,7 +18,8 @@ Speech-to-text and text-to-speech for Home Assistant powered by
 
 1. Install via HACS, restart Home Assistant.
 2. **Settings → Devices & Services → Add Integration → Soniox**.
-3. Paste an API key from [console.soniox.com](https://console.soniox.com).
+3. Paste an API key from [console.soniox.com](https://console.soniox.com)
+   and pick the matching region (US, EU, or Japan).
 4. **Settings → Voice assistants** → set both STT and TTS engines to **Soniox**.
 
 Full docs and configuration options:

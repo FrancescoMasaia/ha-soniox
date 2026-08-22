@@ -30,7 +30,8 @@ into the Assist voice pipeline.
 3. Add `https://github.com/kororos/ha-soniox` with category **Integration**.
 4. Search for **Soniox**, install, then restart Home Assistant.
 5. **Settings → Devices & Services → Add Integration → Soniox**.
-6. Paste an API key from [console.soniox.com](https://console.soniox.com).
+6. Paste an API key from [console.soniox.com](https://console.soniox.com)
+   and choose the **regional endpoint** that matches the project (US, EU, or Japan).
 
 ### Manual
 
@@ -39,7 +40,18 @@ directory, restart, and follow steps 5–6 above.
 
 ## Configuration
 
-Open the integration's **Configure** screen to set defaults:
+The API key and regional endpoint are set when you add the integration
+(and can be changed later via **Reconfigure**). The key must belong to a
+project in that region — an EU key will not authenticate against the US
+API, and vice versa.
+
+| Region           | REST / WebSocket domains                                              |
+| ---------------- | --------------------------------------------------------------------- |
+| United States    | `api.soniox.com`, `stt-rt.soniox.com`, `tts-rt.soniox.com`            |
+| European Union   | `api.eu.soniox.com`, `stt-rt.eu.soniox.com`, `tts-rt.eu.soniox.com`   |
+| Japan            | `api.jp.soniox.com`, `stt-rt.jp.soniox.com`, `tts-rt.jp.soniox.com`   |
+
+Open the integration's **Configure** screen to set model and voice defaults:
 
 | Option              | Default      | Notes                                                                |
 | ------------------- | ------------ | -------------------------------------------------------------------- |

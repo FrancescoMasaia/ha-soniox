@@ -3,15 +3,17 @@
     "step": {
       "user": {
         "title": "Soniox",
-        "description": "Enter your Soniox API key. You can create one in the Soniox console.",
+        "description": "Enter your Soniox API key and the regional endpoint that matches your project. EU and JP keys only work on their regional domains.",
         "data": {
-          "api_key": "API key"
+          "api_key": "API key",
+          "region": "Regional endpoint"
         }
       },
       "reconfigure": {
-        "title": "Update Soniox API key",
+        "title": "Update Soniox credentials",
         "data": {
-          "api_key": "API key"
+          "api_key": "API key",
+          "region": "Regional endpoint"
         }
       }
     },

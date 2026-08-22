@@ -25,6 +25,7 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_API_KEY,
+    CONF_REGION,
     CONF_STT_ASYNC_MODEL,
     CONF_STT_MODEL,
     CONF_TTS_AUDIO_FORMAT,
@@ -32,6 +33,7 @@ from .const import (
     CONF_TTS_MODEL,
     CONF_TTS_SAMPLE_RATE,
     CONF_TTS_VOICE,
+    DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
     DEFAULT_STT_MODEL,
     DEFAULT_TTS_AUDIO_FORMAT,
@@ -40,12 +42,16 @@ from .const import (
     DEFAULT_TTS_SAMPLE_RATE,
     DEFAULT_TTS_VOICE,
     DOMAIN,
+    REGION_EU,
+    REGION_JP,
+    REGION_LABELS,
+    REGION_US,
     STT_ASYNC_MODELS,
     STT_REALTIME_MODELS,
     SUPPORTED_LANGUAGES,
     TTS_MODELS,
-    TTS_MODELS_URL,
     TTS_VOICES,
+    endpoints_for_region,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,13 +70,54 @@ def _model_options(
     return [SelectOptionDict(value=value, label=value) for value in values]
 
 
+def _region_selector() -> SelectSelector:
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(
+                    value=REGION_US, label="United States — api.soniox.com"
+                ),
+                SelectOptionDict(
+                    value=REGION_EU, label="European Union — api.eu.soniox.com"
+                ),
+                SelectOptionDict(
+                    value=REGION_JP, label="Japan — api.jp.soniox.com"
+                ),
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _credentials_schema(
+    *, api_key: str | None = None, region: str = DEFAULT_REGION
+) -> vol.Schema:
+    api_key_field = (
+        vol.Required(CONF_API_KEY, default=api_key)
+        if api_key
+        else vol.Required(CONF_API_KEY)
+    )
+    return vol.Schema(
+        {
+            api_key_field: str,
+            vol.Required(CONF_REGION, default=region): _region_selector(),
+        }
+    )
+
+
+def _entry_title(region: str) -> str:
+    label = REGION_LABELS.get(region, REGION_LABELS[DEFAULT_REGION])
+    return f"Soniox ({label})"
+
+
 async def _validate_api_key(
-    session: aiohttp.ClientSession, api_key: str
+    session: aiohttp.ClientSession, api_key: str, region: str
 ) -> str | None:
-    """Return an error key, or None if the key works."""
+    """Return an error key, or None if the key works on the chosen region."""
+    endpoints = endpoints_for_region(region)
     try:
         async with session.get(
-            TTS_MODELS_URL,
+            endpoints.tts_models_url,
             headers={"Authorization": f"Bearer {api_key}"},
             timeout=aiohttp.ClientTimeout(total=10),
         ) as resp:
@@ -88,51 +135,69 @@ async def _validate_api_key(
 class SonioxConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Soniox."""
 
-    VERSION = 2
+    VERSION = 3
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Prompt for the API key."""
+        """Prompt for the API key and regional endpoint."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            await self.async_set_unique_id(user_input[CONF_API_KEY][-8:])
-            self._abort_if_unique_id_configured()
-
             session = async_get_clientsession(self.hass)
-            error = await _validate_api_key(session, user_input[CONF_API_KEY])
+            error = await _validate_api_key(
+                session, user_input[CONF_API_KEY], user_input[CONF_REGION]
+            )
             if error:
                 errors["base"] = error
             else:
-                return self.async_create_entry(title="Soniox", data=user_input)
+                await self.async_set_unique_id(
+                    f"{user_input[CONF_REGION]}:{user_input[CONF_API_KEY][-8:]}"
+                )
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=_entry_title(user_input[CONF_REGION]), data=user_input
+                )
 
+        defaults = user_input or {}
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=_credentials_schema(
+                api_key=defaults.get(CONF_API_KEY),
+                region=defaults.get(CONF_REGION, DEFAULT_REGION),
+            ),
             errors=errors,
         )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Allow updating the API key on an existing entry."""
+        """Allow updating the API key and regional endpoint."""
         errors: dict[str, str] = {}
         entry = self._get_reconfigure_entry()
 
         if user_input is not None:
             session = async_get_clientsession(self.hass)
-            error = await _validate_api_key(session, user_input[CONF_API_KEY])
+            error = await _validate_api_key(
+                session, user_input[CONF_API_KEY], user_input[CONF_REGION]
+            )
             if error:
                 errors["base"] = error
             else:
                 return self.async_update_reload_and_abort(
-                    entry, data={**entry.data, **user_input}
+                    entry,
+                    data={**entry.data, **user_input},
+                    title=_entry_title(user_input[CONF_REGION]),
+                    unique_id=(
+                        f"{user_input[CONF_REGION]}:{user_input[CONF_API_KEY][-8:]}"
+                    ),
                 )
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=_credentials_schema(
+                region=entry.data.get(CONF_REGION, DEFAULT_REGION)
+            ),
             errors=errors,
         )
 
