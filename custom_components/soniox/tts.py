@@ -14,6 +14,8 @@ import aiohttp
 
 from homeassistant.components.tts import (
     ATTR_AUDIO_OUTPUT,
+    ATTR_PREFERRED_FORMAT,
+    ATTR_PREFERRED_SAMPLE_RATE,
     ATTR_VOICE,
     TextToSpeechEntity,
     TtsAudioType,
@@ -57,6 +59,11 @@ _EXTENSION_BY_FORMAT = {
     "pcm_s16le": "pcm",
 }
 
+# Assist satellites can start playback as soon as the first PCM/WAV chunk
+# arrives. MP3 needs a complete frame sequence and is buffered as a file.
+_STREAMABLE_FORMATS = {"wav", "pcm_s16le"}
+_STREAM_DEFAULT_FORMAT = "wav"
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -95,7 +102,12 @@ class SonioxTTSEntity(TextToSpeechEntity):
 
     @property
     def supported_options(self) -> list[str]:
-        return [ATTR_VOICE, ATTR_AUDIO_OUTPUT]
+        return [
+            ATTR_VOICE,
+            ATTR_AUDIO_OUTPUT,
+            ATTR_PREFERRED_FORMAT,
+            ATTR_PREFERRED_SAMPLE_RATE,
+        ]
 
     @property
     def default_options(self) -> dict[str, Any]:
@@ -146,14 +158,39 @@ class SonioxTTSEntity(TextToSpeechEntity):
         Lets HA pipe text chunks (e.g. from an LLM) and get audio back with
         sub-sentence latency.
         """
-        _LOGGER.debug("Soniox TTS path: WebSocket (async_stream_tts_audio)")
-        audio_format = request.options.get(
-            ATTR_AUDIO_OUTPUT,
-            self._entry.options.get(CONF_TTS_AUDIO_FORMAT, DEFAULT_TTS_AUDIO_FORMAT),
+        audio_format = self._resolve_stream_format(request.options)
+        _LOGGER.debug(
+            "Soniox TTS path: WebSocket stream (format=%s)", audio_format
         )
-        extension = _EXTENSION_BY_FORMAT.get(audio_format, "mp3")
+        extension = _EXTENSION_BY_FORMAT.get(audio_format, "wav")
         data_gen = self._stream_audio(request, audio_format)
         return TTSAudioResponse(extension=extension, data_gen=data_gen)
+
+    def _resolve_stream_format(self, options: dict[str, Any]) -> str:
+        """Pick a chunk-friendly format so Assist can play audio immediately.
+
+        The entity default is mp3 (good for tts.speak files). Assist merges
+        that default into every request, which would force the WebSocket onto
+        a buffered container. Prefer wav/pcm instead.
+        """
+        preferred = options.get(ATTR_PREFERRED_FORMAT)
+        if preferred in ("wav", "pcm", "pcm_s16le"):
+            return "wav" if preferred == "pcm" else preferred
+        explicit = options.get(ATTR_AUDIO_OUTPUT)
+        if explicit in _STREAMABLE_FORMATS:
+            return explicit
+        return _STREAM_DEFAULT_FORMAT
+
+    def _resolve_sample_rate(self, options: dict[str, Any]) -> int:
+        preferred = options.get(ATTR_PREFERRED_SAMPLE_RATE)
+        if preferred:
+            try:
+                return int(preferred)
+            except (TypeError, ValueError):
+                pass
+        return int(
+            self._entry.options.get(CONF_TTS_SAMPLE_RATE, DEFAULT_TTS_SAMPLE_RATE)
+        )
 
     def _build_request_body(
         self, message: str, language: str, options: dict[str, Any]
@@ -191,9 +228,7 @@ class SonioxTTSEntity(TextToSpeechEntity):
             self._entry.options.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE),
         )
         language = (request.language or self.default_language).split("-", 1)[0].lower()
-        sample_rate = int(
-            self._entry.options.get(CONF_TTS_SAMPLE_RATE, DEFAULT_TTS_SAMPLE_RATE)
-        )
+        sample_rate = self._resolve_sample_rate(request.options)
         stream_id = uuid.uuid4().hex
 
         try:

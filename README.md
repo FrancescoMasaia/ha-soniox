@@ -17,9 +17,9 @@ provider, ready to plug into the Assist voice pipeline.
   and sends low-latency final tokens as the user speaks.
 - **STT (async)** — `stt-async-v5` via the Files + Transcriptions REST API.
   Buffers the utterance, uploads it, and polls for a higher-accuracy transcript.
-- **TTS** — `tts-rt-v2` voices, both as a one-shot REST call and as a
-  streaming WebSocket session (so LLM-generated text can start speaking before
-  it's fully written).
+- **TTS** — `tts-rt-v2` voices. Assist uses the Soniox WebSocket so audio
+  chunks (WAV/PCM) start playing before the sentence is finished. `tts.speak`
+  still uses a one-shot REST call (MP3 by default).
 
 ## Installation
 
