@@ -1,13 +1,13 @@
 # Soniox for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
-[![Validate](https://github.com/kororos/ha-soniox/actions/workflows/validate.yml/badge.svg)](https://github.com/kororos/ha-soniox/actions/workflows/validate.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/kororos/ha-soniox)](https://github.com/kororos/ha-soniox/releases)
-[![License: MIT](https://img.shields.io/github/license/kororos/ha-soniox)](https://github.com/kororos/ha-soniox/blob/main/LICENSE)
+[![Validate](https://github.com/FrancescoMasaia/ha-soniox/actions/workflows/validate.yml/badge.svg)](https://github.com/FrancescoMasaia/ha-soniox/actions/workflows/validate.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/FrancescoMasaia/ha-soniox)](https://github.com/FrancescoMasaia/ha-soniox/releases)
+[![License: MIT](https://img.shields.io/github/license/FrancescoMasaia/ha-soniox)](https://github.com/FrancescoMasaia/ha-soniox/blob/main/LICENSE)
 
-A custom Home Assistant integration that exposes [Soniox](https://soniox.com)
-as both a **speech-to-text** and **text-to-speech** provider, ready to plug
-into the Assist voice pipeline.
+A custom Home Assistant integration by **Francesco Masaia** that exposes
+[Soniox](https://soniox.com) as both a **speech-to-text** and **text-to-speech**
+provider, ready to plug into the Assist voice pipeline.
 
 > **Disclaimer**: This is an unofficial project and is not affiliated with,
 > endorsed by, or maintained by Soniox. The Soniox name and logo are used
@@ -27,7 +27,7 @@ into the Assist voice pipeline.
 
 1. Open **HACS → Integrations** in Home Assistant.
 2. Click the **⋮** menu → **Custom repositories**.
-3. Add `https://github.com/kororos/ha-soniox` with category **Integration**.
+3. Add `https://github.com/FrancescoMasaia/ha-soniox` with category **Integration**.
 4. Search for **Soniox**, install, then restart Home Assistant.
 5. **Settings → Devices & Services → Add Integration → Soniox**.
 6. Paste an API key from [console.soniox.com](https://console.soniox.com)
@@ -91,7 +91,7 @@ supported languages.
 ## Issues
 
 Please file bugs and feature requests at
-[github.com/kororos/ha-soniox/issues](https://github.com/kororos/ha-soniox/issues).
+[github.com/FrancescoMasaia/ha-soniox/issues](https://github.com/FrancescoMasaia/ha-soniox/issues).
 
 ## License
 

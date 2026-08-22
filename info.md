@@ -1,7 +1,7 @@
 # Soniox
 
-Speech-to-text and text-to-speech for Home Assistant powered by
-[Soniox](https://soniox.com) — 60+ languages, low-latency streaming.
+Speech-to-text and text-to-speech for Home Assistant by **Francesco Masaia**,
+powered by [Soniox](https://soniox.com) — 60+ languages, low-latency streaming.
 
 > **Disclaimer**: This is an unofficial project and is not affiliated with,
 > endorsed by, or maintained by Soniox.
@@ -23,4 +23,4 @@ Speech-to-text and text-to-speech for Home Assistant powered by
 4. **Settings → Voice assistants** → set both STT and TTS engines to **Soniox**.
 
 Full docs and configuration options:
-[github.com/kororos/ha-soniox](https://github.com/kororos/ha-soniox).
+[github.com/FrancescoMasaia/ha-soniox](https://github.com/FrancescoMasaia/ha-soniox).

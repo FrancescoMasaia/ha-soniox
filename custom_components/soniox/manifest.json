@@ -1,13 +1,13 @@
 {
   "domain": "soniox",
   "name": "Soniox",
-  "codeowners": ["@kororos"],
+  "codeowners": ["@FrancescoMasaia"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/kororos/ha-soniox",
+  "documentation": "https://github.com/FrancescoMasaia/ha-soniox",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/kororos/ha-soniox/issues",
+  "issue_tracker": "https://github.com/FrancescoMasaia/ha-soniox/issues",
   "requirements": [],
   "version": "0.2.0"
 }
