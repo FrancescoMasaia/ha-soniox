@@ -34,12 +34,21 @@ from .const import (
     CONF_API_KEY,
     CONF_REGION,
     CONF_STT_ASYNC_MODEL,
+    CONF_STT_ENDPOINT_DETECTION,
+    CONF_STT_ENDPOINT_LATENCY_LEVEL,
+    CONF_STT_ENDPOINT_SENSITIVITY,
+    CONF_STT_MAX_ENDPOINT_DELAY_MS,
     CONF_STT_MODEL,
     DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
+    DEFAULT_STT_ENDPOINT_DETECTION,
+    DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
+    DEFAULT_STT_ENDPOINT_SENSITIVITY,
+    DEFAULT_STT_MAX_ENDPOINT_DELAY_MS,
     DEFAULT_STT_MODEL,
     DOMAIN,
     REGION_LABELS,
+    STT_ENDPOINT_TOKEN,
     SUPPORTED_LANGUAGES,
     is_async_stt_model,
 )
@@ -156,8 +165,33 @@ class SonioxSTTEntity(SpeechToTextEntity):
             "sample_rate": int(metadata.sample_rate),
             "num_channels": int(metadata.channel),
             "language_hints": [language],
-            "enable_endpoint_detection": True,
         }
+        if self._entry.options.get(
+            CONF_STT_ENDPOINT_DETECTION, DEFAULT_STT_ENDPOINT_DETECTION
+        ):
+            config_msg.update(
+                {
+                    "enable_endpoint_detection": True,
+                    "endpoint_latency_adjustment_level": int(
+                        self._entry.options.get(
+                            CONF_STT_ENDPOINT_LATENCY_LEVEL,
+                            DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
+                        )
+                    ),
+                    "endpoint_sensitivity": float(
+                        self._entry.options.get(
+                            CONF_STT_ENDPOINT_SENSITIVITY,
+                            DEFAULT_STT_ENDPOINT_SENSITIVITY,
+                        )
+                    ),
+                    "max_endpoint_delay_ms": int(
+                        self._entry.options.get(
+                            CONF_STT_MAX_ENDPOINT_DELAY_MS,
+                            DEFAULT_STT_MAX_ENDPOINT_DELAY_MS,
+                        )
+                    ),
+                }
+            )
 
         session = async_get_clientsession(self.hass)
         try:
@@ -213,10 +247,20 @@ class SonioxSTTEntity(SpeechToTextEntity):
                             payload.get("error_message"),
                         )
                         return None
+                    endpoint = False
                     for token in payload.get("tokens", []):
-                        if token.get("is_final") and (text := token.get("text")):
-                            final_tokens.append(text)
-                    if payload.get("finished"):
+                        if not token.get("is_final"):
+                            continue
+                        text = token.get("text")
+                        if not text:
+                            continue
+                        if text == STT_ENDPOINT_TOKEN:
+                            # Speaker finished the turn — return without
+                            # waiting for Home Assistant's VAD / end-of-audio.
+                            endpoint = True
+                            continue
+                        final_tokens.append(text)
+                    if endpoint or payload.get("finished"):
                         break
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                     break

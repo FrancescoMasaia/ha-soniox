@@ -17,6 +17,10 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -27,6 +31,10 @@ from .const import (
     CONF_API_KEY,
     CONF_REGION,
     CONF_STT_ASYNC_MODEL,
+    CONF_STT_ENDPOINT_DETECTION,
+    CONF_STT_ENDPOINT_LATENCY_LEVEL,
+    CONF_STT_ENDPOINT_SENSITIVITY,
+    CONF_STT_MAX_ENDPOINT_DELAY_MS,
     CONF_STT_MODEL,
     CONF_TTS_AUDIO_FORMAT,
     CONF_TTS_LANGUAGE,
@@ -35,6 +43,10 @@ from .const import (
     CONF_TTS_VOICE,
     DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
+    DEFAULT_STT_ENDPOINT_DETECTION,
+    DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
+    DEFAULT_STT_ENDPOINT_SENSITIVITY,
+    DEFAULT_STT_MAX_ENDPOINT_DELAY_MS,
     DEFAULT_STT_MODEL,
     DEFAULT_TTS_AUDIO_FORMAT,
     DEFAULT_TTS_LANGUAGE,
@@ -222,6 +234,24 @@ class SonioxOptionsFlow(OptionsFlow):
                 )
             except (KeyError, TypeError, ValueError):
                 user_input[CONF_TTS_SAMPLE_RATE] = DEFAULT_TTS_SAMPLE_RATE
+            user_input[CONF_STT_ENDPOINT_LATENCY_LEVEL] = int(
+                user_input.get(
+                    CONF_STT_ENDPOINT_LATENCY_LEVEL,
+                    DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
+                )
+            )
+            user_input[CONF_STT_ENDPOINT_SENSITIVITY] = float(
+                user_input.get(
+                    CONF_STT_ENDPOINT_SENSITIVITY,
+                    DEFAULT_STT_ENDPOINT_SENSITIVITY,
+                )
+            )
+            user_input[CONF_STT_MAX_ENDPOINT_DELAY_MS] = int(
+                user_input.get(
+                    CONF_STT_MAX_ENDPOINT_DELAY_MS,
+                    DEFAULT_STT_MAX_ENDPOINT_DELAY_MS,
+                )
+            )
             return self.async_create_entry(title="", data=user_input)
 
         opts = self.config_entry.options
@@ -262,6 +292,52 @@ class SonioxOptionsFlow(OptionsFlow):
                     SelectSelectorConfig(
                         options=stt_async_model_options,
                         mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    CONF_STT_ENDPOINT_DETECTION,
+                    default=opts.get(
+                        CONF_STT_ENDPOINT_DETECTION, DEFAULT_STT_ENDPOINT_DETECTION
+                    ),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_STT_ENDPOINT_LATENCY_LEVEL,
+                    default=opts.get(
+                        CONF_STT_ENDPOINT_LATENCY_LEVEL,
+                        DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
+                    ),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0, max=3, step=1, mode=NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_STT_ENDPOINT_SENSITIVITY,
+                    default=opts.get(
+                        CONF_STT_ENDPOINT_SENSITIVITY,
+                        DEFAULT_STT_ENDPOINT_SENSITIVITY,
+                    ),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=-1.0,
+                        max=1.0,
+                        step=0.1,
+                        mode=NumberSelectorMode.SLIDER,
+                    )
+                ),
+                vol.Optional(
+                    CONF_STT_MAX_ENDPOINT_DELAY_MS,
+                    default=opts.get(
+                        CONF_STT_MAX_ENDPOINT_DELAY_MS,
+                        DEFAULT_STT_MAX_ENDPOINT_DELAY_MS,
+                    ),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=500,
+                        max=3000,
+                        step=100,
+                        unit_of_measurement="ms",
+                        mode=NumberSelectorMode.BOX,
                     )
                 ),
                 vol.Optional(

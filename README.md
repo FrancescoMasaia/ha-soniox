@@ -17,9 +17,8 @@ provider, ready to plug into the Assist voice pipeline.
   and sends low-latency final tokens as the user speaks.
 - **STT (async)** — `stt-async-v5` via the Files + Transcriptions REST API.
   Buffers the utterance, uploads it, and polls for a higher-accuracy transcript.
-- **TTS** — `tts-rt-v2` voices. Assist uses the Soniox WebSocket so audio
-  chunks (WAV/PCM) start playing before the sentence is finished. `tts.speak`
-  still uses a one-shot REST call (MP3 by default).
+- **TTS** — `tts-rt-v2` voices over WebSocket. Assist and `tts.speak` both
+  stream WAV/PCM chunks so playback can start before synthesis finishes.
 
 ## Installation
 
@@ -57,16 +56,20 @@ Open the integration's **Configure** screen to set model and voice defaults:
 | ------------------- | ------------ | -------------------------------------------------------------------- |
 | Realtime STT model  | `stt-rt-v5`  | WebSocket streaming. Used by the `Speech-to-Text` entity.            |
 | Async STT model     | `stt-async-v5` | File upload + poll. Used by the `Speech-to-Text (Async)` entity.   |
+| STT endpoint detection | on        | Return the transcript as soon as Soniox emits `<end>`.               |
+| STT endpoint latency level | `2`   | `0` default … `3` most aggressive.                                   |
+| STT endpoint sensitivity | `0.3`  | `-1.0` wait longer … `1.0` end sooner.                               |
+| STT max endpoint delay | `1500` ms | Hard cap after speech ends (`500`–`3000`).                           |
 | TTS model           | `tts-rt-v2`  | Soniox real-time TTS model.                                          |
 | Default TTS voice   | `Maya`       | Any voice from the Soniox catalog (see below).                       |
 | Default TTS language| `en`         | Two-letter ISO code.                                                 |
-| TTS audio format    | `mp3`        | `mp3`, `wav`, or `pcm_s16le`.                                        |
+| TTS audio format    | `wav`        | Streamed as `wav` or `pcm_s16le` so `tts.speak` can start early.     |
 | TTS sample rate     | `24000`      | Used only for raw/wav formats.                                       |
 
 Per-service-call overrides:
 
 - `voice` — any voice name (Maya, Adrian, Kenji, Sofia, …).
-- `audio_output` — `mp3`, `wav`, or `pcm_s16le`.
+- `audio_output` / `preferred_format` — `wav` or `pcm_s16le` (recommended).
 
 ## Use it in the Assist pipeline
 

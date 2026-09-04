@@ -34,6 +34,10 @@
         "data": {
           "stt_model": "Realtime STT model",
           "stt_async_model": "Async STT model",
+          "stt_endpoint_detection": "STT endpoint detection (end the turn when the speaker finishes)",
+          "stt_endpoint_latency_level": "STT endpoint latency level (0=default, 3=fastest)",
+          "stt_endpoint_sensitivity": "STT endpoint sensitivity (-1 wait longer, +1 end sooner)",
+          "stt_max_endpoint_delay_ms": "STT max endpoint delay after speech ends",
           "tts_model": "TTS model",
           "tts_voice": "Default TTS voice",
           "tts_language": "Default TTS language",

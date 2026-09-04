@@ -17,6 +17,10 @@ CONF_TTS_VOICE: Final = "tts_voice"
 CONF_TTS_LANGUAGE: Final = "tts_language"
 CONF_TTS_AUDIO_FORMAT: Final = "tts_audio_format"
 CONF_TTS_SAMPLE_RATE: Final = "tts_sample_rate"
+CONF_STT_ENDPOINT_DETECTION: Final = "stt_endpoint_detection"
+CONF_STT_ENDPOINT_LATENCY_LEVEL: Final = "stt_endpoint_latency_level"
+CONF_STT_ENDPOINT_SENSITIVITY: Final = "stt_endpoint_sensitivity"
+CONF_STT_MAX_ENDPOINT_DELAY_MS: Final = "stt_max_endpoint_delay_ms"
 
 # Regional deployments (https://soniox.com/docs/data-residency)
 REGION_US: Final = "us"
@@ -75,8 +79,15 @@ DEFAULT_STT_ASYNC_MODEL: Final = "stt-async-v5"
 DEFAULT_TTS_MODEL: Final = "tts-rt-v2"
 DEFAULT_TTS_VOICE: Final = "Maya"
 DEFAULT_TTS_LANGUAGE: Final = "en"
-DEFAULT_TTS_AUDIO_FORMAT: Final = "mp3"
+DEFAULT_TTS_AUDIO_FORMAT: Final = "wav"
 DEFAULT_TTS_SAMPLE_RATE: Final = 24000
+# Soniox recommended starting point for responsive voice assistants.
+# https://soniox.com/docs/stt/rt/endpoint-detection
+DEFAULT_STT_ENDPOINT_DETECTION: Final = True
+DEFAULT_STT_ENDPOINT_LATENCY_LEVEL: Final = 2
+DEFAULT_STT_ENDPOINT_SENSITIVITY: Final = 0.3
+DEFAULT_STT_MAX_ENDPOINT_DELAY_MS: Final = 1500
+STT_ENDPOINT_TOKEN: Final = "<end>"
 
 # Built-in voice list (https://soniox.com/docs/tts/models — all voices speak all languages).
 TTS_VOICES: Final = [
