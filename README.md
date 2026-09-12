@@ -60,6 +60,8 @@ Open the integration's **Configure** screen to set model and voice defaults:
 | STT endpoint latency level | `2`   | `0` default … `3` most aggressive.                                   |
 | STT endpoint sensitivity | `0.3`  | `-1.0` wait longer … `1.0` end sooner.                               |
 | STT max endpoint delay | `1500` ms | Hard cap after speech ends (`500`–`3000`).                           |
+| STT context         | home-assistant commands | Biases recognition toward lights, media, climate, covers, and similar voice commands. Add nicknames not already on devices or areas. |
+| Include house names | on        | Adds area, floor, device, and Assist-exposed entity names (plus aliases) to every STT session. |
 | TTS model           | `tts-rt-v2`  | Soniox real-time TTS model.                                          |
 | Default TTS voice   | `Maya`       | Any voice from the Soniox catalog (see below).                       |
 | Default TTS language| `en`         | Two-letter ISO code.                                                 |

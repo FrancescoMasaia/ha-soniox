@@ -23,6 +23,7 @@ from .const import (
     SonioxEndpoints,
     endpoints_for_region,
 )
+from .home_vocab import async_setup_home_vocab_cache, async_unload_home_vocab_cache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SonioxConfigEntry) -> bo
     entry.runtime_data = endpoints_for_region(
         entry.data.get(CONF_REGION, DEFAULT_REGION)
     )
+    async_setup_home_vocab_cache(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
@@ -87,7 +89,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: SonioxConfigEntry) -> 
 
 async def async_unload_entry(hass: HomeAssistant, entry: SonioxConfigEntry) -> bool:
     """Unload a Soniox config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        async_unload_home_vocab_cache(hass)
+    return unloaded
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: SonioxConfigEntry) -> None:

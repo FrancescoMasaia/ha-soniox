@@ -8,7 +8,7 @@ powered by [Soniox](https://soniox.com) — 60+ languages, low-latency streaming
 
 ## Highlights
 
-- Real-time STT (`stt-rt-v5`) — WebSocket streaming with final tokens.
+- Real-time STT (`stt-rt-v5`) — WebSocket streaming with final tokens and a home-assistant context that includes your rooms and devices.
 - Async STT (`stt-async-v5`) — file upload + poll for higher-accuracy transcripts.
 - TTS (`tts-rt-v2`) with 28 voices, every voice speaks every language.
 - Per-call voice and audio-format overrides.

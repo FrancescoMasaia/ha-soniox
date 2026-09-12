@@ -38,11 +38,17 @@
           "stt_endpoint_latency_level": "STT endpoint latency level (0=default, 3=fastest)",
           "stt_endpoint_sensitivity": "STT endpoint sensitivity (-1 wait longer, +1 end sooner)",
           "stt_max_endpoint_delay_ms": "STT max endpoint delay after speech ends",
+          "stt_context": "STT context",
+          "stt_context_home": "Include rooms, floors, and devices from this Home Assistant house",
           "tts_model": "TTS model",
           "tts_voice": "Default TTS voice",
           "tts_language": "Default TTS language",
           "tts_audio_format": "TTS audio format",
           "tts_sample_rate": "TTS sample rate (Hz, used for PCM/WAV)"
+        },
+        "data_description": {
+          "stt_context": "Helps Soniox recognize typical home-assistant commands. Add nicknames that are not already on devices or areas. Paste a JSON object with general, text, and terms to replace the built-in hints.",
+          "stt_context_home": "Automatically adds area, floor, device, and Assist-exposed entity names (and their aliases) to every transcription."
         }
       }
     }

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 DOMAIN: Final = "soniox"
 
@@ -21,6 +22,8 @@ CONF_STT_ENDPOINT_DETECTION: Final = "stt_endpoint_detection"
 CONF_STT_ENDPOINT_LATENCY_LEVEL: Final = "stt_endpoint_latency_level"
 CONF_STT_ENDPOINT_SENSITIVITY: Final = "stt_endpoint_sensitivity"
 CONF_STT_MAX_ENDPOINT_DELAY_MS: Final = "stt_max_endpoint_delay_ms"
+CONF_STT_CONTEXT: Final = "stt_context"
+CONF_STT_CONTEXT_HOME: Final = "stt_context_home"
 
 # Regional deployments (https://soniox.com/docs/data-residency)
 REGION_US: Final = "us"
@@ -87,7 +90,88 @@ DEFAULT_STT_ENDPOINT_DETECTION: Final = True
 DEFAULT_STT_ENDPOINT_LATENCY_LEVEL: Final = 2
 DEFAULT_STT_ENDPOINT_SENSITIVITY: Final = 0.3
 DEFAULT_STT_MAX_ENDPOINT_DELAY_MS: Final = 1500
+DEFAULT_STT_CONTEXT_HOME: Final = True
 STT_ENDPOINT_TOKEN: Final = "<end>"
+# Soniox rejects context above ~10,000 characters; keep a safety margin.
+STT_CONTEXT_CHAR_LIMIT: Final = 9000
+
+# Bias realtime/async STT toward typical Home Assistant voice commands.
+# Sent as Soniox structured context (general + terms + this text).
+# https://soniox.com/docs/stt/concepts/context
+DEFAULT_STT_CONTEXT: Final = (
+    "This is a person speaking to a Home Assistant voice assistant in a house. "
+    "Utterances are short commands or questions: turn lights on or off, change "
+    "brightness or color, play pause skip or stop music, change volume, play a "
+    "song artist or playlist on a speaker, set the thermostat, open or close "
+    "blinds shutters or the garage, activate a scene, lock a door, start or dock "
+    "a vacuum, set a timer, ask the time or weather, or ask if a device is on.\n\n"
+    "Italian examples: accendi le luci della cucina; spegni la luce del soggiorno; "
+    "abbassa le luci della camera; alza l'intensità della lampada; imposta la luce "
+    "al cinquanta percento; riproduci la musica in salotto; metti in pausa; alza "
+    "il volume; passa alla prossima canzone; imposta il termostato a venti gradi; "
+    "apri le tapparelle; chiudi le persiane; attiva la scena relax; avvia "
+    "l'aspirapolvere; che tempo fa; che ore sono; spegni tutto.\n\n"
+    "English examples: turn on the kitchen lights; dim the bedroom lamp; play "
+    "music in the living room; pause; turn the volume up; next track; set the "
+    "thermostat to 20 degrees; open the blinds; activate movie night; start the "
+    "vacuum; what's the weather; what time is it; turn everything off.\n\n"
+    "Room and device names from this house are supplied separately. "
+    "Add extra nicknames here if needed."
+)
+
+# Uncommon or easily-misheard home vocabulary. Common verbs stay in the text.
+DEFAULT_STT_CONTEXT_TERMS: Final = [
+    "Home Assistant",
+    "Assist",
+    "soggiorno",
+    "salotto",
+    "cucina",
+    "camera da letto",
+    "corridoio",
+    "terrazzo",
+    "living room",
+    "bedroom",
+    "hallway",
+    "lampadario",
+    "faretti",
+    "striscia LED",
+    "dimmer",
+    "luminosità",
+    "intensità",
+    "tapparelle",
+    "persiane",
+    "climatizzatore",
+    "condizionatore",
+    "termostato",
+    "riscaldamento",
+    "aspirapolvere",
+    "serratura",
+    "Spotify",
+    "YouTube Music",
+    "Apple Music",
+    "Sonos",
+    "Chromecast",
+    "playlist",
+]
+
+_STT_CONTEXT_LANGUAGE_NAMES: Final = {
+    "ar": "Arabic",
+    "de": "German",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "hi": "Hindi",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "sv": "Swedish",
+    "tr": "Turkish",
+    "zh": "Chinese",
+}
 
 # Built-in voice list (https://soniox.com/docs/tts/models — all voices speak all languages).
 TTS_VOICES: Final = [
@@ -114,3 +198,100 @@ SUPPORTED_LANGUAGES: Final = [
 def is_async_stt_model(model: str) -> bool:
     """Return True if the model uses the async (file) STT API."""
     return "async" in model
+
+
+def build_stt_context(
+    raw: str | None,
+    language: str,
+    extra_terms: list[str] | None = None,
+    extra_general: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Build the Soniox structured context sent with each STT session.
+
+    A JSON object with ``general`` / ``text`` / ``terms`` replaces the built-in
+    hints. Anything else is used as the ``text`` section on top of the default
+    home-assistant domain and vocabulary. When house names are available they
+    replace the generic term list instead of being merged with it.
+    """
+    text = (raw if raw is not None else DEFAULT_STT_CONTEXT).strip()
+    context: dict[str, Any] | None = None
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            inner = parsed.get("context")
+            if isinstance(inner, dict):
+                context = dict(inner)
+            elif any(
+                key in parsed
+                for key in ("general", "text", "terms", "translation_terms")
+            ):
+                context = dict(parsed)
+
+    if context is None:
+        general: list[dict[str, str]] = [
+            {"key": "domain", "value": "Smart home voice assistant"},
+            {"key": "setting", "value": "Home Assistant"},
+            {
+                "key": "topic",
+                "value": "Short spoken commands to control a house",
+            },
+            {
+                "key": "intent",
+                "value": (
+                    "Lights, media, climate, covers, scenes, locks, "
+                    "vacuums, timers, weather and device state"
+                ),
+            },
+        ]
+        language_name = _STT_CONTEXT_LANGUAGE_NAMES.get(language)
+        if language_name:
+            general.append({"key": "language", "value": language_name})
+            general.append(
+                {
+                    "key": "instructions",
+                    "value": (
+                        f"The speaker is talking to a voice assistant, typically in "
+                        f"{language_name}. Transcribe the command faithfully, "
+                        "including room names, device names, and numbers."
+                    ),
+                }
+            )
+        context = {
+            "general": general,
+            "terms": list(extra_terms or DEFAULT_STT_CONTEXT_TERMS),
+        }
+        if text:
+            context["text"] = text
+
+    if extra_general:
+        existing_general = list(context.get("general") or [])
+        existing_keys = {
+            item.get("key")
+            for item in existing_general
+            if isinstance(item, dict)
+        }
+        for item in extra_general:
+            if item.get("key") not in existing_keys:
+                existing_general.append(item)
+        context["general"] = existing_general
+
+    if extra_terms:
+        # Real rooms/devices already describe this house — drop generic fillers.
+        context["terms"] = list(extra_terms)
+
+    return _trim_stt_context(context)
+
+
+def _trim_stt_context(context: dict[str, Any]) -> dict[str, Any]:
+    """Drop trailing terms if the payload would exceed Soniox's size limit."""
+    terms = list(context.get("terms") or [])
+    while terms and len(json.dumps(context, ensure_ascii=False)) > STT_CONTEXT_CHAR_LIMIT:
+        terms.pop()
+        if terms:
+            context["terms"] = terms
+        else:
+            context.pop("terms", None)
+    return context

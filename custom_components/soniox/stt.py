@@ -34,6 +34,8 @@ from .const import (
     CONF_API_KEY,
     CONF_REGION,
     CONF_STT_ASYNC_MODEL,
+    CONF_STT_CONTEXT,
+    CONF_STT_CONTEXT_HOME,
     CONF_STT_ENDPOINT_DETECTION,
     CONF_STT_ENDPOINT_LATENCY_LEVEL,
     CONF_STT_ENDPOINT_SENSITIVITY,
@@ -41,6 +43,8 @@ from .const import (
     CONF_STT_MODEL,
     DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
+    DEFAULT_STT_CONTEXT,
+    DEFAULT_STT_CONTEXT_HOME,
     DEFAULT_STT_ENDPOINT_DETECTION,
     DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
     DEFAULT_STT_ENDPOINT_SENSITIVITY,
@@ -50,8 +54,10 @@ from .const import (
     REGION_LABELS,
     STT_ENDPOINT_TOKEN,
     SUPPORTED_LANGUAGES,
+    build_stt_context,
     is_async_stt_model,
 )
+from .home_vocab import get_cached_home_vocab
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,6 +154,36 @@ class SonioxSTTEntity(SpeechToTextEntity):
             )
         return self._entry.options.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)
 
+    def _stt_context(self, language: str) -> dict:
+        """Structured Soniox context; never log the contents (can be large)."""
+        raw = self._entry.options.get(CONF_STT_CONTEXT, DEFAULT_STT_CONTEXT)
+        extra_terms: list[str] | None = None
+        extra_general: list[dict[str, str]] | None = None
+        if self._entry.options.get(CONF_STT_CONTEXT_HOME, DEFAULT_STT_CONTEXT_HOME):
+            try:
+                vocab = get_cached_home_vocab(self.hass)
+            except Exception as err:  # noqa: BLE001 — never fail STT on vocab
+                _LOGGER.debug("Could not collect home vocab for STT context: %s", err)
+            else:
+                extra_terms = vocab.terms
+                extra_general = []
+                if vocab.home_name:
+                    extra_general.append({"key": "home", "value": vocab.home_name})
+                if vocab.areas:
+                    extra_general.append(
+                        {"key": "areas", "value": ", ".join(vocab.areas[:24])}
+                    )
+                if vocab.floors:
+                    extra_general.append(
+                        {"key": "floors", "value": ", ".join(vocab.floors[:12])}
+                    )
+        return build_stt_context(
+            raw,
+            language,
+            extra_terms=extra_terms,
+            extra_general=extra_general,
+        )
+
     async def _process_realtime(
         self,
         metadata: SpeechMetadata,
@@ -165,6 +201,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
             "sample_rate": int(metadata.sample_rate),
             "num_channels": int(metadata.channel),
             "language_hints": [language],
+            "context": self._stt_context(language),
         }
         if self._entry.options.get(
             CONF_STT_ENDPOINT_DETECTION, DEFAULT_STT_ENDPOINT_DETECTION
@@ -369,6 +406,7 @@ class SonioxSTTEntity(SpeechToTextEntity):
             "model": model,
             "file_id": file_id,
             "language_hints": [language],
+            "context": self._stt_context(language),
             "client_reference_id": "home-assistant",
         }
         async with session.post(

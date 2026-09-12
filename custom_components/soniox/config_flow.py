@@ -25,12 +25,16 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
 )
 
 from .const import (
     CONF_API_KEY,
     CONF_REGION,
     CONF_STT_ASYNC_MODEL,
+    CONF_STT_CONTEXT,
+    CONF_STT_CONTEXT_HOME,
     CONF_STT_ENDPOINT_DETECTION,
     CONF_STT_ENDPOINT_LATENCY_LEVEL,
     CONF_STT_ENDPOINT_SENSITIVITY,
@@ -43,6 +47,8 @@ from .const import (
     CONF_TTS_VOICE,
     DEFAULT_REGION,
     DEFAULT_STT_ASYNC_MODEL,
+    DEFAULT_STT_CONTEXT,
+    DEFAULT_STT_CONTEXT_HOME,
     DEFAULT_STT_ENDPOINT_DETECTION,
     DEFAULT_STT_ENDPOINT_LATENCY_LEVEL,
     DEFAULT_STT_ENDPOINT_SENSITIVITY,
@@ -340,6 +346,16 @@ class SonioxOptionsFlow(OptionsFlow):
                         mode=NumberSelectorMode.BOX,
                     )
                 ),
+                vol.Optional(
+                    CONF_STT_CONTEXT,
+                    default=opts.get(CONF_STT_CONTEXT, DEFAULT_STT_CONTEXT),
+                ): TextSelector(TextSelectorConfig(multiline=True)),
+                vol.Optional(
+                    CONF_STT_CONTEXT_HOME,
+                    default=opts.get(
+                        CONF_STT_CONTEXT_HOME, DEFAULT_STT_CONTEXT_HOME
+                    ),
+                ): BooleanSelector(),
                 vol.Optional(
                     CONF_TTS_MODEL,
                     default=opts.get(CONF_TTS_MODEL, DEFAULT_TTS_MODEL),
