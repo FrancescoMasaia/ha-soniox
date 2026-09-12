@@ -99,79 +99,20 @@ STT_CONTEXT_CHAR_LIMIT: Final = 9000
 # Sent as Soniox structured context (general + terms + this text).
 # https://soniox.com/docs/stt/concepts/context
 DEFAULT_STT_CONTEXT: Final = (
-    "This is a person speaking to a Home Assistant voice assistant in a house. "
-    "Utterances are short commands or questions: turn lights on or off, change "
-    "brightness or color, play pause skip or stop music, change volume, play a "
-    "song artist or playlist on a speaker, set the thermostat, open or close "
-    "blinds shutters or the garage, activate a scene, lock a door, start or dock "
-    "a vacuum, set a timer, ask the time or weather, or ask if a device is on.\n\n"
-    "Italian examples: accendi le luci della cucina; spegni la luce del soggiorno; "
-    "abbassa le luci della camera; alza l'intensità della lampada; imposta la luce "
-    "al cinquanta percento; riproduci la musica in salotto; metti in pausa; alza "
-    "il volume; passa alla prossima canzone; imposta il termostato a venti gradi; "
-    "apri le tapparelle; chiudi le persiane; attiva la scena relax; avvia "
-    "l'aspirapolvere; che tempo fa; che ore sono; spegni tutto.\n\n"
-    "English examples: turn on the kitchen lights; dim the bedroom lamp; play "
-    "music in the living room; pause; turn the volume up; next track; set the "
-    "thermostat to 20 degrees; open the blinds; activate movie night; start the "
-    "vacuum; what's the weather; what time is it; turn everything off.\n\n"
-    "Room and device names from this house are supplied separately. "
-    "Add extra nicknames here if needed."
+    "Una persona parla all'assistente vocale di casa. "
+    "Comandi brevi su luci, musica, clima e tapparelle."
 )
 
-# Uncommon or easily-misheard home vocabulary. Common verbs stay in the text.
+# Fallback only when the house has no named rooms or devices yet.
 DEFAULT_STT_CONTEXT_TERMS: Final = [
     "Home Assistant",
-    "Assist",
-    "soggiorno",
-    "salotto",
     "cucina",
-    "camera da letto",
-    "corridoio",
-    "terrazzo",
-    "living room",
-    "bedroom",
-    "hallway",
-    "lampadario",
-    "faretti",
-    "striscia LED",
-    "dimmer",
-    "luminosità",
-    "intensità",
+    "soggiorno",
+    "camera",
     "tapparelle",
-    "persiane",
-    "climatizzatore",
-    "condizionatore",
     "termostato",
-    "riscaldamento",
     "aspirapolvere",
-    "serratura",
-    "Spotify",
-    "YouTube Music",
-    "Apple Music",
-    "Sonos",
-    "Chromecast",
-    "playlist",
 ]
-
-_STT_CONTEXT_LANGUAGE_NAMES: Final = {
-    "ar": "Arabic",
-    "de": "German",
-    "en": "English",
-    "es": "Spanish",
-    "fr": "French",
-    "hi": "Hindi",
-    "it": "Italian",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "nl": "Dutch",
-    "pl": "Polish",
-    "pt": "Portuguese",
-    "ru": "Russian",
-    "sv": "Swedish",
-    "tr": "Turkish",
-    "zh": "Chinese",
-}
 
 # Built-in voice list (https://soniox.com/docs/tts/models — all voices speak all languages).
 TTS_VOICES: Final = [
@@ -202,7 +143,7 @@ def is_async_stt_model(model: str) -> bool:
 
 def build_stt_context(
     raw: str | None,
-    language: str,
+    language: str,  # noqa: ARG001 — kept for call-site compatibility
     extra_terms: list[str] | None = None,
     extra_general: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
@@ -232,33 +173,14 @@ def build_stt_context(
 
     if context is None:
         general: list[dict[str, str]] = [
-            {"key": "domain", "value": "Smart home voice assistant"},
+            {"key": "domain", "value": "Assistente vocale di casa"},
             {"key": "setting", "value": "Home Assistant"},
+            {"key": "language", "value": "italiano"},
             {
-                "key": "topic",
-                "value": "Short spoken commands to control a house",
-            },
-            {
-                "key": "intent",
-                "value": (
-                    "Lights, media, climate, covers, scenes, locks, "
-                    "vacuums, timers, weather and device state"
-                ),
+                "key": "instructions",
+                "value": "Trascrivi il comando in italiano, compresi i nomi di stanze e dispositivi.",
             },
         ]
-        language_name = _STT_CONTEXT_LANGUAGE_NAMES.get(language)
-        if language_name:
-            general.append({"key": "language", "value": language_name})
-            general.append(
-                {
-                    "key": "instructions",
-                    "value": (
-                        f"The speaker is talking to a voice assistant, typically in "
-                        f"{language_name}. Transcribe the command faithfully, "
-                        "including room names, device names, and numbers."
-                    ),
-                }
-            )
         context = {
             "general": general,
             "terms": list(extra_terms or DEFAULT_STT_CONTEXT_TERMS),
